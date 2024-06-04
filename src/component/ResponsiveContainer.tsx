@@ -1,6 +1,3 @@
-/**
- * @fileOverview Wrapper component to make charts adapt to the size of parent * DOM
- */
 import clsx from 'clsx';
 import React, {
   ReactElement,
@@ -19,6 +16,37 @@ import { isElement } from 'react-is';
 import { isPercent } from '../util/DataUtils';
 import { warn } from '../util/LogUtils';
 import { getDisplayName } from '../util/ReactUtils';
+
+class ResizeObserverPolyfill {
+  constructor(callback) {
+    this._targets = new Set();
+    this._callback = callback;
+    window.addEventListener('resize', this.onWindowResize.bind(this), false);
+  }
+  observe(target) {
+    this._targets.add(target);
+  }
+  unobserve(target) {
+    this._targets.delete(target);
+  }
+  disconnect() {
+    this._targets.clear();
+  }
+  onWindowResize() {
+    const entries = [];
+    for (const t of this._targets) {
+      entries.push({
+        target: t,
+        // not used by alphaTab
+        contentRect: undefined,
+        borderBoxSize: undefined,
+        contentBoxSize: [],
+        devicePixelContentBoxSize: [],
+      });
+    }
+    this._callback(entries, this);
+  }
+}
 
 export interface Props {
   aspect?: number;
@@ -99,7 +127,10 @@ export const ResponsiveContainer = forwardRef<HTMLDivElement, Props>(
       if (debounce > 0) {
         callback = throttle(callback, debounce, { trailing: true, leading: false });
       }
-      const observer = new ResizeObserver(callback);
+
+      // Check if ResizeObserver is available, otherwise use the polyfill
+      const Observer = window.ResizeObserver || ResizeObserverPolyfill;
+      const observer = new Observer(callback);
 
       const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
       setContainerSize(containerWidth, containerHeight);
