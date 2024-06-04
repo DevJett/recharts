@@ -1,3 +1,6 @@
+/**
+ * @fileOverview Wrapper component to make charts adapt to the size of parent * DOM
+ */
 import clsx from 'clsx';
 import React, {
   ReactElement,
